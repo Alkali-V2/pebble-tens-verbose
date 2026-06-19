@@ -105,7 +105,7 @@ void tens_render(GContext *ctx, GRect bounds, const struct tm *now,
   GColor ink = dm ? GColorWhite : GColorBlack;
   // Subtle gray (low-contrast): placeholders and unfilled tracks/outlines.
   // Dark gray on black, light gray on white.
-  GColor muted = dm ? GColorDarkGray : GColorLightGray;
+  GColor muted = dm ? GColorLightGray : GColorDarkGray;
   // Contrasty gray: the month/year bars in rainbow mode. Light on black,
   // dark on white.
   GColor gray = dm ? GColorLightGray : GColorDarkGray;

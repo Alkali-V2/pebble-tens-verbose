@@ -5,6 +5,10 @@ var Clay = require('pebble-clay');
 var clayConfig = require('./config');
 var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
 
+// clay.getSettings() returns a dict keyed by the NUMERIC message key (see
+// pebble-clay prepareSettingsForAppMessage), so look up the numeric id rather
+// than a "MESSAGE_KEY_" name string.
+var messageKeys = require('message_keys');
 var NUMERIC_KEYS = ['BIRTH_YEAR', 'BIRTH_MONTH', 'BIRTH_DAY', 'LIFE_SPAN_YEARS'];
 
 Pebble.addEventListener('showConfiguration', function (e) {
@@ -17,10 +21,11 @@ Pebble.addEventListener('webviewclosed', function (e) {
   }
   var dict = clay.getSettings(e.response);
 
-  // Coerce numeric inputs (Clay yields them as strings).
+  // Coerce numeric inputs (Clay yields number-input values as strings, which
+  // would otherwise be sent as a cstring and misread as an int on the watch).
   NUMERIC_KEYS.forEach(function (key) {
-    var mk = 'MESSAGE_KEY_' + key;
-    if (dict[mk] !== undefined) {
+    var mk = messageKeys[key];
+    if (dict[mk] !== undefined && dict[mk] !== null) {
       dict[mk] = parseInt(dict[mk], 10) || 0;
     }
   });
