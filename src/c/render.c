@@ -104,8 +104,8 @@ void tens_render(GContext *ctx, GRect bounds, const struct tm *now,
   GColor bg = dm ? GColorBlack : GColorWhite;
   GColor ink = dm ? GColorWhite : GColorBlack;
   // Subtle gray (low-contrast): placeholders and unfilled tracks/outlines.
-  // Dark gray on black, light gray on white.
-  GColor muted = dm ? GColorLightGray : GColorDarkGray;
+  // Light gray in light mode (on white), dark gray in dark mode (on black).
+  GColor muted = dm ? GColorDarkGray : GColorLightGray;
 
   graphics_context_set_fill_color(ctx, bg);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
