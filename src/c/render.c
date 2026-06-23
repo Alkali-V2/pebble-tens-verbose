@@ -124,6 +124,9 @@ void tens_render(GContext *ctx, GRect bounds, const struct tm *now,
   // Subtle gray (low-contrast): placeholders and unfilled tracks/outlines.
   // Light gray in light mode (on white), dark gray in dark mode (on black).
   GColor muted = dm ? GColorDarkGray : GColorLightGray;
+  // Contrasty gray (the inverse of muted): the two top bars' fill in rainbow
+  // mode. Dark gray in light mode (on white), light gray in dark mode (on black).
+  GColor gray = dm ? GColorLightGray : GColorDarkGray;
 
   graphics_context_set_fill_color(ctx, bg);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
@@ -147,30 +150,34 @@ void tens_render(GContext *ctx, GRect bounds, const struct tm *now,
   render_grid(ctx, &L, &d, cfg, ink, muted, grad);
 
   // Three bars in two fixed slots: the top row split into left | right, plus
-  // the long bottom bar. The chosen set decides which metric (and color) lands
-  // in each slot. Life uses ink (or the spectral gradient in rainbow mode); the
-  // calendar metrics use their fixed colors.
+  // the long bottom bar. The chosen set only decides which metric (and its
+  // progress) lands in each slot; the *coloring* is purely positional and the
+  // same in both sets:
+  //   - bottom full-width bar  -> mirrors the grid: spectral gradient in
+  //                               rainbow mode, else ink.
+  //   - the two top bars       -> contrasty gray in rainbow mode, else the two
+  //                               accent colors (left=accent1, right=accent2).
   int top_left_frac, top_right_frac, bottom_frac;
-  GColor top_left_color, top_right_color, bottom_color;
-  bool bottom_is_life = (cfg->bar_set != TENS_BARS_WEEK_MONTH_YEAR);
   if (cfg->bar_set == TENS_BARS_WEEK_MONTH_YEAR) {
-    top_left_frac = d.frac_week;   top_left_color = TENS_COLOR_WEEK;
-    top_right_frac = d.frac_month; top_right_color = TENS_COLOR_MONTH;
-    bottom_frac = d.frac_year;     bottom_color = TENS_COLOR_YEAR;
+    top_left_frac = d.frac_week;
+    top_right_frac = d.frac_month;
+    bottom_frac = d.frac_year;
   } else {
-    top_left_frac = d.frac_month;  top_left_color = TENS_COLOR_MONTH;
-    top_right_frac = d.frac_year;  top_right_color = TENS_COLOR_YEAR;
-    bottom_frac = d.frac_life;     bottom_color = ink;
+    top_left_frac = d.frac_month;
+    top_right_frac = d.frac_year;
+    bottom_frac = d.frac_life;
   }
+  GColor top_left_color = cfg->rainbow ? gray : TENS_ACCENT1;
+  GColor top_right_color = cfg->rainbow ? gray : TENS_ACCENT2;
   fill_solid_bar(ctx, tens_month_bar(&L), top_left_frac, top_left_color,
                  cfg->bars_missing_fill, muted);
   fill_solid_bar(ctx, tens_year_bar(&L), top_right_frac, top_right_color,
                  cfg->bars_missing_fill, muted);
-  if (bottom_is_life && grad) {
+  if (grad) {
     fill_gradient_bar(ctx, tens_life_bar(&L), bottom_frac, grad,
                       cfg->bars_missing_fill, muted);
   } else {
-    fill_solid_bar(ctx, tens_life_bar(&L), bottom_frac, bottom_color,
+    fill_solid_bar(ctx, tens_life_bar(&L), bottom_frac, ink,
                    cfg->bars_missing_fill, muted);
   }
 

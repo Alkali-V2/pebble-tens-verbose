@@ -26,7 +26,7 @@ from .scene import (
     Text,
     build_scene,
 )
-from .state import RuntimeState, UserConfig
+from .state import RuntimeState, SimulatorConfig, UserConfig
 
 _ALIGN = {"left": "la", "center": "ma", "right": "ra"}
 
@@ -93,57 +93,86 @@ def dither_gradient(
     return dithered.convert("RGB")
 
 
-def _render_gradient(op: Gradient) -> Image.Image:
-    """Dither the gradient op to the Pebble gamut (see ``dither_gradient``)."""
+def _render_gradient(op: Gradient, screen: bool = False) -> Image.Image:
+    """Dither the gradient op to the Pebble gamut (see ``dither_gradient``).
+
+    ``screen`` selects the muted screen-simulator stop set.
+    """
     return dither_gradient(
-        op.w, op.h, gradient_stops(op.gradient), op.axis, op.span, op.offset
+        op.w, op.h, gradient_stops(op.gradient, screen), op.axis, op.span, op.offset
     )
 
 
-def render_image(scene: Scene) -> Image.Image:
-    """Render a scene to a Pillow ``Image`` in RGB."""
+def render_image(scene: Scene, sim: SimulatorConfig | None = None) -> Image.Image:
+    """Render a scene to a Pillow ``Image`` in RGB.
+
+    Spectral gradients are drawn exactly as the device draws them: one baked
+    whole-grid ramp (``scene.meta['spectral_w' / 'spectral_h']``) is dithered
+    once, and each gradient op blits the same slice the C runtime blits, so the
+    preview is pixel-identical to the watch rather than re-dithering per box.
+
+    ``sim.screen_simulator_mode`` draws every color — solid palette colors and
+    gradient stops alike — in its muted on-panel form (see ``palette``).
+    """
+    screen = bool(sim and sim.screen_simulator_mode)
     pal = scene.palette()
-    img = Image.new("RGB", (scene.width, scene.height), pal.rgb(scene.background))
+    img = Image.new("RGB", (scene.width, scene.height), pal.rgb(scene.background, screen))
     draw = ImageDraw.Draw(img)
+
+    baked: dict[tuple[str, int, int], Image.Image] = {}
+
+    def _baked(name: str, w: int, h: int) -> Image.Image:
+        key = (name, w, h)
+        if key not in baked:
+            baked[key] = dither_gradient(w, h, gradient_stops(name, screen), axis="h")
+        return baked[key]
 
     for op in scene.ops:
         if isinstance(op, FillRect):
             draw.rectangle(
                 [op.x, op.y, op.x + op.w - 1, op.y + op.h - 1],
-                fill=pal.rgb(op.color),
+                fill=pal.rgb(op.color, screen),
             )
         elif isinstance(op, StrokeRect):
             draw.rectangle(
                 [op.x, op.y, op.x + op.w - 1, op.y + op.h - 1],
-                outline=pal.rgb(op.color),
+                outline=pal.rgb(op.color, screen),
             )
         elif isinstance(op, Line):
-            draw.line([op.x1, op.y1, op.x2, op.y2], fill=pal.rgb(op.color), width=op.width)
+            draw.line([op.x1, op.y1, op.x2, op.y2], fill=pal.rgb(op.color, screen),
+                      width=op.width)
         elif isinstance(op, Text):
             anchor = _ALIGN.get(op.align, "la")
             tx = op.x if op.align == "left" else (
                 op.x + op.w // 2 if op.align == "center" else op.x + op.w
             )
-            draw.text((tx, op.y), op.text, fill=pal.rgb(op.color), anchor=anchor)
+            draw.text((tx, op.y), op.text, fill=pal.rgb(op.color, screen), anchor=anchor)
         elif isinstance(op, Gradient):
             if op.w > 0 and op.h > 0:
-                img.paste(_render_gradient(op), (op.x, op.y))
+                gw = scene.meta.get("spectral_w")
+                gh = scene.meta.get("spectral_h")
+                if gw and gh:
+                    # Blit the device's exact slice of the baked whole-grid ramp.
+                    box = (op.offset, op.src_y, op.offset + op.w, op.src_y + op.h)
+                    img.paste(_baked(op.gradient, gw, gh).crop(box), (op.x, op.y))
+                else:  # standalone op (no baked-grid size) -> dither in place
+                    img.paste(_render_gradient(op, screen), (op.x, op.y))
         elif isinstance(op, (Bitmap, Pdc, FramebufferPatch)):
             # Resource-backed ops are placeholders in the preview; draw a marker
             # box so layout is still visible without the bundled asset.
             x, y = op.x, op.y
-            draw.rectangle([x, y, x + 8, y + 8], outline=pal.rgb("ink"))
+            draw.rectangle([x, y, x + 8, y + 8], outline=pal.rgb("ink", screen))
         else:  # pragma: no cover - defensive
             raise TypeError(f"cannot preview op {op!r}")
 
     return img
 
 
-def render_png(scene: Scene, path: str | Path) -> Path:
+def render_png(scene: Scene, path: str | Path, sim: SimulatorConfig | None = None) -> Path:
     """Render a scene and write it to ``path`` as PNG."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    render_image(scene).save(path, "PNG")
+    render_image(scene, sim).save(path, "PNG")
     return path
 
 
@@ -162,8 +191,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "-o", "--out", default="../previews/current.png", help="output PNG path"
     )
+    parser.add_argument(
+        "--screen-sim", action="store_true",
+        help="render colors as the emery panel displays them (screen simulator)",
+    )
     args = parser.parse_args(argv)
-    out = render_png(_default_scene(), args.out)
+    sim = SimulatorConfig(screen_simulator_mode=args.screen_sim)
+    out = render_png(_default_scene(), args.out, sim)
     print(f"wrote {out}")
     return 0
 

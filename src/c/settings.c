@@ -18,6 +18,7 @@ static void set_defaults(void) {
       .bars_missing_fill = true,   // bars: filled track by default
       .grid_missing_fill = false,  // current block: outline by default
       .bar_set = TENS_BARS_MONTH_YEAR_LIFE,
+      .start_of_week = TENS_WEEK_MONDAY,
       .birth_year = 1990,
       .birth_month = 4,
       .birth_day = 12,
@@ -43,6 +44,8 @@ static void sanitize(void) {
   s_settings.life_span_years = clampi(s_settings.life_span_years, 1, 200);
   s_settings.bar_set = clampi(s_settings.bar_set, TENS_BARS_MONTH_YEAR_LIFE,
                               TENS_BARS_WEEK_MONTH_YEAR);
+  s_settings.start_of_week = clampi(s_settings.start_of_week, TENS_WEEK_MONDAY,
+                                    TENS_WEEK_SUNDAY);
 }
 
 void tens_settings_init(void) {
@@ -114,6 +117,8 @@ bool tens_settings_apply(DictionaryIterator *iter) {
   s_settings.grid_missing_fill =
       read_bool(iter, MESSAGE_KEY_GRID_MISSING_STYLE, s_settings.grid_missing_fill);
   s_settings.bar_set = read_int(iter, MESSAGE_KEY_BAR_SET, s_settings.bar_set);
+  s_settings.start_of_week =
+      read_int(iter, MESSAGE_KEY_START_OF_WEEK, s_settings.start_of_week);
   s_settings.birth_year =
       read_int(iter, MESSAGE_KEY_BIRTH_YEAR, s_settings.birth_year);
   s_settings.birth_month =

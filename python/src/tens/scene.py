@@ -110,7 +110,8 @@ class Gradient(Op):
     gradient: str  # key into palette.GRADIENTS
     axis: str = "h"  # "h" (left->right) or "v" (top->bottom)
     span: int = 0  # full extent the ramp maps over; 0 means == w
-    offset: int = 0  # starting pixel into the span (window of a larger ramp)
+    offset: int = 0  # source x into the baked grid ramp (== window start on axis)
+    src_y: int = 0  # source y into the baked grid ramp (top row this slice samples)
     kind: str = field(init=False, default="gradient")
 
 
@@ -187,6 +188,13 @@ def build_scene(
     layout_key = cfg.layout
     grid = layout.day_rect(layout_key)
     fill_axis = layout.fill_axis(layout_key)
+    if cfg.rainbow:
+        # The spectral gradient is one baked image the size of the whole day
+        # grid; every gradient op samples a slice of it (see ``Gradient.offset``
+        # / ``Gradient.src_y``). Recording the size here lets the preview rebuild
+        # the exact same image the device blits, so they stay pixel-identical.
+        scene.meta["spectral_w"] = grid.w
+        scene.meta["spectral_h"] = grid.h
     for i in range(144):
         cell = layout.ten_minute_cell(i, layout_key, cfg.hours_direction)
         if i < derived.ten_minute_index:
@@ -194,7 +202,7 @@ def build_scene(
         elif i == derived.ten_minute_index:
             # Show the whole current box (its missing part as outline or fill),
             # then the completed-minute lines on top.
-            if cfg.missing_style == "fill":
+            if cfg.grid_missing_style == "fill":
                 scene.add(FillRect(cell.x, cell.y, cell.w, cell.h, "muted"))
             else:
                 scene.add(StrokeRect(cell.x, cell.y, cell.w, cell.h, "muted"))
@@ -207,11 +215,12 @@ def build_scene(
 
     # Two bars under the grid: a top bar split in half (month | year) and the
     # long life bar. Each fills up to its progress over a "muted" track. In
-    # rainbow mode month/year are the contrasty gray; otherwise their fixed
-    # colors. Life mirrors the boxes: ink, or the spectral gradient in rainbow.
-    ms = cfg.missing_style
-    month_color = "gray" if cfg.rainbow else "month"
-    year_color = "gray" if cfg.rainbow else "year"
+    # rainbow mode the two top bars are the contrasty gray; otherwise the two
+    # accent colors. Life mirrors the boxes: ink, or the spectral gradient in
+    # rainbow.
+    ms = cfg.bars_missing_style
+    month_color = "gray" if cfg.rainbow else "accent1"
+    year_color = "gray" if cfg.rainbow else "accent2"
     _structured_bar(scene, layout.month_bar(layout_key), [(1.0, month_color)],
                     derived.fraction_of_month, ms)
     _structured_bar(scene, layout.year_bar(layout_key), [(1.0, year_color)],
@@ -256,7 +265,13 @@ def _ink_rect(
     spectral gradient when ``rainbow`` is set (the region masks the gradient).
     """
     if rainbow:
-        scene.add(Gradient(x, y, w, h, "spectral", "h", span=grid.w, offset=x - grid.x))
+        # Slice of the grid-wide baked ramp at this region's position: source x
+        # is offset, source y is the row within the grid (matches the device's
+        # blit from (x - grid.x, y - grid.y)).
+        scene.add(Gradient(
+            x, y, w, h, "spectral", "h",
+            span=grid.w, offset=x - grid.x, src_y=y - grid.y,
+        ))
     else:
         scene.add(FillRect(x, y, w, h, "ink"))
 

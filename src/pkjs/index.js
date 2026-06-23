@@ -10,7 +10,7 @@ var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
 // than a "MESSAGE_KEY_" name string.
 var messageKeys = require('message_keys');
 var NUMERIC_KEYS = ['BIRTH_YEAR', 'BIRTH_MONTH', 'BIRTH_DAY', 'LIFE_SPAN_YEARS',
-                    'BAR_SET'];
+                    'BAR_SET', 'START_OF_WEEK'];
 
 Pebble.addEventListener('showConfiguration', function (e) {
   Pebble.openURL(clay.generateUrl());

@@ -54,9 +54,17 @@ def test_life_stage_fracs_sum_to_one():
     assert abs(sum(d.life_stage_fracs) - 1.0) < 1e-9
 
 
-def test_missing_style_default_is_outline():
+def test_defaults_match_c_settings():
+    # Defaults mirror src/c/settings.c set_defaults() so the preview's default
+    # render matches the device out of the box.
     from tens.state import UserConfig
-    assert UserConfig(birth_year=1990, birth_month=4, birth_day=12).missing_style == "outline"
+    cfg = UserConfig()
+    assert (cfg.birth_year, cfg.birth_month, cfg.birth_day) == (1990, 4, 12)
+    assert cfg.life_span_years == 80
+    assert cfg.layout == "6x4" and cfg.hours_direction == "horizontal"
+    assert cfg.dark_mode is False and cfg.rainbow is False and cfg.fill_invert is False
+    assert cfg.bars_missing_style == "fill"     # C: bars_missing_fill = true
+    assert cfg.grid_missing_style == "outline"  # C: grid_missing_fill = false
 
 
 def test_rainbow_masks_grid_with_spectral_gradient():

@@ -4,11 +4,12 @@
 #pragma once
 #include <pebble.h>
 
-// Bar colors when NOT in rainbow mode (background/ink/muted grays are chosen
-// from dark_mode directly in render.c).
-#define TENS_COLOR_WEEK  GColorKellyGreen
-#define TENS_COLOR_MONTH GColorChromeYellow
-#define TENS_COLOR_YEAR  GColorVividCerulean
+// The two accent colors (medium shade), used by the two top bars in non-rainbow
+// mode. Positional: top-left is accent 1, top-right is accent 2, regardless of
+// which metric the bar shows. Mirrors _ACC1/_ACC2 in python/src/tens/palette.py.
+// (background/ink/muted grays are chosen from dark_mode directly in render.c.)
+#define TENS_ACCENT1 GColorFromRGB(0xFF, 0x55, 0x00)  // #FF5500
+#define TENS_ACCENT2 GColorFromRGB(0x00, 0x00, 0xFF)  // #0000FF
 
 // --- Spectral ramp (life bar + rainbow grid mask) ----------------------------
 #define TENS_SPECTRAL_STOPS 6

@@ -91,8 +91,8 @@ portal.
   `spectral_6x4.png`, declared in `package.json`). On device `render.c` blits
   slices of the matching bitmap for the inked grid and the life bar in rainbow
   mode (no per-pixel color math). Rerun the baker and rebuild if you retune the
-  `spectral` stops in `palette.py`. The desktop preview still dithers per-op, so
-  it can differ slightly from the device's single whole-grid bake.
+  `spectral` stops in `palette.py`. The desktop preview blits the same slices of
+  the same whole-grid bake, so it stays pixel-identical to the device.
 - **Palette parity.** `palette.h` hardcodes the current Python palette values.
   If you retune colors in `python/src/tens/palette.py`, mirror them here.
 ```

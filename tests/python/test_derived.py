@@ -38,3 +38,16 @@ def test_fractions_in_range():
     d = derive(_rt(), cfg)
     for f in (d.fraction_of_day, d.fraction_of_month, d.fraction_of_year, d.fraction_of_life):
         assert 0.0 <= f <= 1.0
+
+
+def test_start_of_week_shifts_week_fraction():
+    base = dict(birth_year=1990, birth_month=4, birth_day=12)
+    # Sunday (weekday 6) at midnight: full week elapsed Monday-start, fresh start
+    # (0) Sunday-start.
+    sun = _rt(weekday=6, hour=0, minute=0)
+    assert derive(sun, UserConfig(**base, start_of_the_week="Monday")).fraction_of_week == 6 / 7
+    assert derive(sun, UserConfig(**base, start_of_the_week="Sunday")).fraction_of_week == 0.0
+    # Monday (weekday 0) at midnight: fresh start Monday-start, day 1 Sunday-start.
+    mon = _rt(weekday=0, hour=0, minute=0)
+    assert derive(mon, UserConfig(**base, start_of_the_week="Monday")).fraction_of_week == 0.0
+    assert derive(mon, UserConfig(**base, start_of_the_week="Sunday")).fraction_of_week == 1 / 7

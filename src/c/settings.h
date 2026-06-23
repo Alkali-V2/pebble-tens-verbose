@@ -9,6 +9,12 @@ enum {
   TENS_BARS_WEEK_MONTH_YEAR = 1,  // week  | month, then year
 };
 
+// Day the week bar starts on (mirrors UserConfig.start_of_the_week).
+enum {
+  TENS_WEEK_MONDAY = 0,
+  TENS_WEEK_SUNDAY = 1,
+};
+
 typedef struct {
   bool rainbow;          // spectral gradient mask over the inked grid/life bar
   bool dark_mode;        // true=black background/white ink, false=white/black
@@ -22,6 +28,7 @@ typedef struct {
   bool grid_missing_fill; // current 10-min block's missing part:
                           //   false=outline, true=muted fill
   int bar_set;           // TENS_BARS_* : which trio the three bars show
+  int start_of_week;     // TENS_WEEK_* : day the week bar starts on
   int birth_year;
   int birth_month;       // 1..12
   int birth_day;         // 1..31

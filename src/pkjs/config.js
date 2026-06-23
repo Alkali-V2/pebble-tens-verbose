@@ -58,6 +58,16 @@ module.exports = [
           { label: 'Week / Month / Year', value: 1 },
         ],
       },
+      {
+        type: 'select',
+        messageKey: 'START_OF_WEEK',
+        label: 'Week starts on',
+        defaultValue: 0,
+        options: [
+          { label: 'Monday', value: 0 },
+          { label: 'Sunday', value: 1 },
+        ],
+      },
     ],
   },
   {

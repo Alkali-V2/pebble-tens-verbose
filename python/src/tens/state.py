@@ -53,9 +53,9 @@ class UserConfig:
     string so age and progress calculations are easy in both Python and C.
     """
 
-    birth_year: int = 1988
-    birth_month: int = 11  # 1-12
-    birth_day: int = 29  # 1-31
+    birth_year: int = 1990
+    birth_month: int = 4  # 1-12
+    birth_day: int = 12  # 1-31
     # Appearance / behavior knobs (extend as the settings schema grows).
     palette_name: str = "default"
     dark_mode: bool = False  # False=white bg/black boxes, True=black bg/white boxes
@@ -69,11 +69,16 @@ class UserConfig:
     hours_direction: str = "horizontal"  # "vertical" | "horizontal"
     fill_invert: bool = False  # vertical fill: False=from top, True=from bottom
     #                            horizontal fill: False=from left, True=from right
-    # How the incomplete (missing) part of the current box and the bars renders:
-    missing_style: str = "outline"  # "outline" (border) | "fill" (light gray)
+    # How the incomplete (missing) part renders, split to mirror the C defaults
+    # (settings.c): the bars default to a filled track, the current box to an
+    # outline. Each is "outline" (border) or "fill" (light gray).
+    bars_missing_style: str = "fill"  # month/year/life bars' missing track
+    grid_missing_style: str = "outline"  # current box's missing part
     # Rainbow: color the inked boxes/minute-lines by a spectral gradient that
     # spans the whole day grid (the ink acts as a mask over the gradient).
     rainbow: bool = False
+    # Which day the week bar starts on.
+    start_of_the_week: str = "Monday"  # "Monday" | "Sunday"
 
     def __post_init__(self) -> None:
         _check("birth_month", self.birth_month, 1, 12)
@@ -84,8 +89,25 @@ class UserConfig:
             raise ValueError("layout must be '4x6' or '6x4'")
         if self.hours_direction not in ("vertical", "horizontal"):
             raise ValueError("hours_direction must be 'vertical' or 'horizontal'")
-        if self.missing_style not in ("outline", "fill"):
-            raise ValueError("missing_style must be 'outline' or 'fill'")
+        for name in ("bars_missing_style", "grid_missing_style"):
+            if getattr(self, name) not in ("outline", "fill"):
+                raise ValueError(f"{name} must be 'outline' or 'fill'")
+        if self.start_of_the_week not in ("Monday", "Sunday"):
+            raise ValueError("start_of_the_week must be 'Monday' or 'Sunday'")
+
+
+@dataclass(frozen=True)
+class SimulatorConfig:
+    """Preview-only options with no on-watch equivalent.
+
+    These tune how the desktop preview is *rendered*, not the watchface itself,
+    so unlike ``UserConfig`` they never round-trip to the device or persistent
+    storage and have no C mirror.
+    """
+
+    # Recall palette colors as the emery panel actually displays them rather
+    # than the uncorrected nominal RGB we store. See ``palette.resolve``.
+    screen_simulator_mode: bool = False
 
 
 def _check(name: str, value: int, lo: int, hi: int) -> None:

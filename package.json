@@ -20,6 +20,7 @@
             "BARS_MISSING_STYLE",
             "GRID_MISSING_STYLE",
             "BAR_SET",
+            "START_OF_WEEK",
             "LAYOUT_4X6",
             "HOURS_HORIZONTAL",
             "BIRTH_YEAR",
@@ -54,5 +55,5 @@
             "watchface": true
         }
     },
-    "version": "1.0.2"
+    "version": "1.0.4"
 }

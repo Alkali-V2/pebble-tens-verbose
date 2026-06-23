@@ -5,7 +5,7 @@ deterministic scene plus preview/export artifacts come out. The Pebble C
 runtime consumes the generated structures.
 """
 
-from .state import RuntimeState, UserConfig
+from .state import RuntimeState, SimulatorConfig, UserConfig
 from .derived import DerivedState, derive
 from .scene import (
     Scene,
@@ -25,6 +25,7 @@ from .palette import Palette, PaletteColor
 __all__ = [
     "RuntimeState",
     "UserConfig",
+    "SimulatorConfig",
     "DerivedState",
     "derive",
     "Scene",

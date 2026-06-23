@@ -43,9 +43,11 @@ void tens_derive(const struct tm *now, const TensSettings *cfg,
   out->ten_minute_index = minutes_of_day / 10;
   out->minute_of_box = now->tm_min % 10;
 
-  // Week runs Monday(0)..Sunday(6); tm_wday is Sunday(0)..Saturday(6).
-  int wday_mon = (now->tm_wday + 6) % 7;
-  out->frac_week = wday_mon * 1000 / 7;
+  // tm_wday is Sunday(0)..Saturday(6). Index the week from the configured start
+  // day: Monday-start shifts so Monday is 0; Sunday-start uses tm_wday as-is.
+  int wday = (cfg->start_of_week == TENS_WEEK_SUNDAY) ? now->tm_wday
+                                                      : (now->tm_wday + 6) % 7;
+  out->frac_week = wday * 1000 / 7;
   out->frac_month = (day - 1) * 1000 / days_in_month(year, month);
   out->frac_year = (day_of_year(year, month, day) - 1) * 1000 / days_in_year(year);
 

@@ -101,7 +101,13 @@ def derive(rt: RuntimeState, cfg: UserConfig) -> DerivedState:
     minutes_of_day = rt.hour * 60 + rt.minute
     fraction_of_day = minutes_of_day / (24 * 60)
 
-    fraction_of_week = (rt.weekday * 24 * 60 + minutes_of_day) / (7 * 24 * 60)
+    # rt.weekday is Monday(0)..Sunday(6). For a Sunday-start week, shift so
+    # Sunday becomes index 0.
+    if cfg.start_of_the_week == "Sunday":
+        week_index = (rt.weekday + 1) % 7  # Sunday(0)..Saturday(6)
+    else:
+        week_index = rt.weekday  # Monday(0)..Sunday(6)
+    fraction_of_week = (week_index * 24 * 60 + minutes_of_day) / (7 * 24 * 60)
 
     fraction_of_month = (rt.day - 1) / _days_in_month(rt.year, rt.month)
 
