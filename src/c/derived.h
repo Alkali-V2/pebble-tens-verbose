@@ -12,6 +12,12 @@ typedef struct {
   int frac_month;        // permille through the month
   int frac_year;         // permille through the year (Jan 1 -> Dec 31)
   int frac_life;         // permille through the configured lifespan (clamped)
+  int frac_slot1;        // permille through hour-slot 1 (0 when hidden today)
+  int frac_slot2;        // permille through hour-slot 2 (0 when hidden today)
 } TensDerived;
+
+// Whether a slot (TENS_VIS_*) is shown on a weekend / weekday today. Shared by
+// the renderer (slot backgrounds) and the slot-progress bars.
+bool tens_slot_visible(int visibility, bool is_weekend);
 
 void tens_derive(const struct tm *now, const TensSettings *cfg, TensDerived *out);

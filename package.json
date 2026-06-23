@@ -18,7 +18,7 @@
             "RAINBOW",
             "DARK_MODE",
             "BARS_MISSING_STYLE",
-            "GRID_MISSING_STYLE",
+            "BOX_MISSING_STYLE",
             "BAR_SET",
             "START_OF_WEEK",
             "LAYOUT_4X6",
@@ -27,7 +27,24 @@
             "BIRTH_MONTH",
             "BIRTH_DAY",
             "LIFE_SPAN_YEARS",
-            "FILL_INVERT"
+            "COLOR1",
+            "COLOR2",
+            "SLOT1_START",
+            "SLOT1_END",
+            "SLOT1_VISIBILITY",
+            "SLOT1_COLOR",
+            "SLOT2_START",
+            "SLOT2_END",
+            "SLOT2_VISIBILITY",
+            "SLOT2_COLOR",
+            "SLOT3_START",
+            "SLOT3_END",
+            "SLOT3_VISIBILITY",
+            "SLOT3_COLOR",
+            "SLOT4_START",
+            "SLOT4_END",
+            "SLOT4_VISIBILITY",
+            "SLOT4_COLOR"
         ],
         "projectType": "native",
         "resources": {
@@ -55,5 +72,5 @@
             "watchface": true
         }
     },
-    "version": "1.0.4"
+    "version": "1.0.5"
 }

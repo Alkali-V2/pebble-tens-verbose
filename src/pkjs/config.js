@@ -1,5 +1,62 @@
 // Clay configuration page for Tens. Each item's messageKey matches the keys
 // declared in package.json and read in src/c/settings.c. Mirrors UserConfig.
+
+// Accent choice (color1/color2 + slot colors). Values match the C enums in
+// settings.h (TENS_COLOR_* / TENS_VIS_* / TENS_SLOT_*).
+var COLOR_OPTIONS = [
+  { label: 'Orange', value: 0 },
+  { label: 'Blue', value: 1 },
+  { label: 'Gray', value: 2 },
+];
+
+var VISIBILITY_OPTIONS = [
+  { label: 'Never', value: 0 },
+  { label: 'Weekdays', value: 1 },
+  { label: 'Weekends', value: 2 },
+  { label: 'Always', value: 3 },
+];
+
+var SLOT_COLOR_OPTIONS = [
+  { label: 'Color 1', value: 0 },
+  { label: 'Color 2', value: 1 },
+  { label: 'Muted', value: 2 },
+];
+
+// One hour-slot's four controls. `defaults` is {start, end, vis, color}.
+function slotItems(n, defaults) {
+  return [
+    { type: 'heading', defaultValue: 'Slot ' + n },
+    {
+      type: 'input',
+      messageKey: 'SLOT' + n + '_START',
+      label: 'Start hour (0-23)',
+      attributes: { type: 'number', min: 0, max: 23 },
+      defaultValue: String(defaults.start),
+    },
+    {
+      type: 'input',
+      messageKey: 'SLOT' + n + '_END',
+      label: 'End hour (0-23, exclusive)',
+      attributes: { type: 'number', min: 0, max: 23 },
+      defaultValue: String(defaults.end),
+    },
+    {
+      type: 'select',
+      messageKey: 'SLOT' + n + '_VISIBILITY',
+      label: 'Show on',
+      defaultValue: defaults.vis,
+      options: VISIBILITY_OPTIONS,
+    },
+    {
+      type: 'select',
+      messageKey: 'SLOT' + n + '_COLOR',
+      label: 'Color',
+      defaultValue: defaults.color,
+      options: SLOT_COLOR_OPTIONS,
+    },
+  ];
+}
+
 module.exports = [
   { type: 'heading', defaultValue: 'Tens' },
   {
@@ -32,22 +89,42 @@ module.exports = [
       },
       {
         type: 'toggle',
-        messageKey: 'FILL_INVERT',
-        label: 'Minute fill from far edge',
-        defaultValue: false,
-      },
-      {
-        type: 'toggle',
         messageKey: 'BARS_MISSING_STYLE',
         label: 'Bars: fill missing parts (vs outline)',
         defaultValue: true,
       },
       {
         type: 'toggle',
-        messageKey: 'GRID_MISSING_STYLE',
-        label: 'Current 10-min block: fill missing parts (vs outline)',
-        defaultValue: false,
+        messageKey: 'BOX_MISSING_STYLE',
+        label: 'Current 10-min block: fill missing part (vs outline)',
+        defaultValue: true,
       },
+    ],
+  },
+  {
+    type: 'section',
+    items: [
+      { type: 'heading', defaultValue: 'Colors' },
+      {
+        type: 'select',
+        messageKey: 'COLOR1',
+        label: 'Color 1 (left top bar)',
+        defaultValue: 0,
+        options: COLOR_OPTIONS,
+      },
+      {
+        type: 'select',
+        messageKey: 'COLOR2',
+        label: 'Color 2 (right top bar)',
+        defaultValue: 1,
+        options: COLOR_OPTIONS,
+      },
+    ],
+  },
+  {
+    type: 'section',
+    items: [
+      { type: 'heading', defaultValue: 'Bars' },
       {
         type: 'select',
         messageKey: 'BAR_SET',
@@ -56,6 +133,8 @@ module.exports = [
         options: [
           { label: 'Month / Year / Life', value: 0 },
           { label: 'Week / Month / Year', value: 1 },
+          { label: 'Slot 1 / Week / Month', value: 2 },
+          { label: 'Slot 1 / Slot 2 / Week', value: 3 },
         ],
       },
       {
@@ -69,6 +148,14 @@ module.exports = [
         ],
       },
     ],
+  },
+  {
+    type: 'section',
+    items: [{ type: 'heading', defaultValue: 'Hour slots' }]
+      .concat(slotItems(1, { start: 9, end: 17, vis: 0, color: 0 }))
+      .concat(slotItems(2, { start: 23, end: 7, vis: 0, color: 1 }))
+      .concat(slotItems(3, { start: 0, end: 0, vis: 0, color: 2 }))
+      .concat(slotItems(4, { start: 0, end: 0, vis: 0, color: 2 })),
   },
   {
     type: 'section',

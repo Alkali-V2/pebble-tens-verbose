@@ -33,6 +33,33 @@ static int clamp_permille(int v) {
   return v;
 }
 
+bool tens_slot_visible(int visibility, bool is_weekend) {
+  switch (visibility) {
+    case TENS_VIS_ALWAYS: return true;
+    case TENS_VIS_WEEKDAYS: return !is_weekend;
+    case TENS_VIS_WEEKENDS: return is_weekend;
+    default: return false;  // TENS_VIS_NEVER
+  }
+}
+
+// Progress through an hour-slot in permille (0..1000). Mirrors
+// derived._slot_fraction: a within-day slot (start < end) resets at midnight; a
+// slot crossing midnight (start > end) resets at its own start. start == end is
+// an empty slot.
+static int slot_fraction(int start, int end, int minutes_of_day) {
+  int duration_h = (end - start + 24) % 24;
+  if (duration_h == 0) return 0;
+  int dur_min = duration_h * 60;
+  int start_min = start * 60;
+  if (start < end) {  // within one day -> reset at midnight
+    return clamp_permille((minutes_of_day - start_min) * 1000 / dur_min);
+  }
+  // crosses midnight -> reset at the slot's start
+  int elapsed = (minutes_of_day - start_min + 24 * 60) % (24 * 60);
+  int frac = elapsed * 1000 / dur_min;
+  return frac > 1000 ? 1000 : frac;
+}
+
 void tens_derive(const struct tm *now, const TensSettings *cfg,
                  TensDerived *out) {
   int year = now->tm_year + 1900;
@@ -47,7 +74,9 @@ void tens_derive(const struct tm *now, const TensSettings *cfg,
   // day: Monday-start shifts so Monday is 0; Sunday-start uses tm_wday as-is.
   int wday = (cfg->start_of_week == TENS_WEEK_SUNDAY) ? now->tm_wday
                                                       : (now->tm_wday + 6) % 7;
-  out->frac_week = wday * 1000 / 7;
+  // Include the time of day so the week bar advances continuously, not in
+  // whole-day steps (matches derived.fraction_of_week).
+  out->frac_week = (wday * 24 * 60 + minutes_of_day) * 1000 / (7 * 24 * 60);
   out->frac_month = (day - 1) * 1000 / days_in_month(year, month);
   out->frac_year = (day_of_year(year, month, day) - 1) * 1000 / days_in_year(year);
 
@@ -56,4 +85,14 @@ void tens_derive(const struct tm *now, const TensSettings *cfg,
   int life_days = cfg->life_span_years * 365;
   if (life_days < 1) life_days = 1;
   out->frac_life = clamp_permille(age_days * 1000 / life_days);
+
+  // Slot-progress bars only fill on days the slot is shown (tm_wday: Sun=0,
+  // Sat=6); hidden slots read empty.
+  bool is_weekend = (now->tm_wday == 0 || now->tm_wday == 6);
+  const TensSlot *s1 = &cfg->slots[0];
+  const TensSlot *s2 = &cfg->slots[1];
+  out->frac_slot1 = tens_slot_visible(s1->visibility, is_weekend)
+                        ? slot_fraction(s1->start, s1->end, minutes_of_day) : 0;
+  out->frac_slot2 = tens_slot_visible(s2->visibility, is_weekend)
+                        ? slot_fraction(s2->start, s2->end, minutes_of_day) : 0;
 }

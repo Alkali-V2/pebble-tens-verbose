@@ -35,7 +35,7 @@ _HEADER = """\
 
 
 def _gcolor(scene: Scene, key: str) -> str:
-    return resolve(scene.palette_name, scene.dark_mode).gcolor(key)
+    return resolve(scene.dark_mode).gcolor(key)
 
 
 def _op_to_c(scene: Scene, op) -> str:
@@ -99,8 +99,7 @@ def scene_to_c(scene: Scene, func_name: str = "tens_render_scene") -> str:
     bg = _gcolor(scene, scene.background)
     return (
         _HEADER
-        + f"// canvas {scene.width}x{scene.height}, palette '{scene.palette_name}', "
-        + f"{len(scene.ops)} ops\n"
+        + f"// canvas {scene.width}x{scene.height}, {len(scene.ops)} ops\n"
         + f"static void {func_name}(GContext *ctx, GRect bounds) {{\n"
         + f"  graphics_context_set_fill_color(ctx, {bg});\n"
         + "  graphics_fill_rect(ctx, bounds, 0, GCornerNone);\n\n"

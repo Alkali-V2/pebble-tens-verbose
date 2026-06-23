@@ -10,7 +10,13 @@ var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
 // than a "MESSAGE_KEY_" name string.
 var messageKeys = require('message_keys');
 var NUMERIC_KEYS = ['BIRTH_YEAR', 'BIRTH_MONTH', 'BIRTH_DAY', 'LIFE_SPAN_YEARS',
-                    'BAR_SET', 'START_OF_WEEK'];
+                    'BAR_SET', 'START_OF_WEEK', 'COLOR1', 'COLOR2'];
+// The four hour-slots each contribute START/END (number inputs -> strings) plus
+// VISIBILITY/COLOR (selects); coercing all of them to ints is safe.
+for (var s = 1; s <= 4; s++) {
+  NUMERIC_KEYS.push('SLOT' + s + '_START', 'SLOT' + s + '_END',
+                    'SLOT' + s + '_VISIBILITY', 'SLOT' + s + '_COLOR');
+}
 
 Pebble.addEventListener('showConfiguration', function (e) {
   Pebble.openURL(clay.generateUrl());

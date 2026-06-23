@@ -26,6 +26,7 @@ CANVAS_H = 228
 BOX = 10  # edge of one ten-minute box, px
 CELL_GAP = 3  # small gap: between boxes *inside* an hour-block
 BLOCK_GAP = 8  # big gap: between hour-blocks
+SLOT_BG_MARGIN = 3  # margin around the slots
 
 # Time structure (fixed facts, not style).
 HOURS_PER_DAY = 24

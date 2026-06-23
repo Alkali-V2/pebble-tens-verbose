@@ -3,11 +3,31 @@
 #include "layout.h"
 #include "palette.h"
 
-static int rect_right(GRect r) { return r.origin.x + r.size.w; }
-static int rect_bottom(GRect r) { return r.origin.y + r.size.h; }
-
 static int clampi(int v, int lo, int hi) {
   return v < lo ? lo : (v > hi ? hi : v);
+}
+
+// A bar's fill color for a color1/color2 choice: the accent for orange/blue,
+// the contrasty `gray` for "gray".
+static GColor accent_color(int choice, GColor gray) {
+  switch (choice) {
+    case TENS_COLOR_ORANGE: return TENS_ORANGE;
+    case TENS_COLOR_BLUE: return TENS_BLUE;
+    default: return gray;  // TENS_COLOR_GRAY
+  }
+}
+
+// A slot background's color. "muted" slots (and every slot in rainbow mode) are
+// the soft `muted` gray; otherwise the slot follows color1/color2, where a
+// "gray" choice also reads as `muted`.
+static GColor slot_bg_color(const TensSettings *cfg, int slot_color, GColor muted) {
+  if (cfg->rainbow || slot_color == TENS_SLOT_MUTED) return muted;
+  int choice = (slot_color == TENS_SLOT_COLOR1) ? cfg->color1 : cfg->color2;
+  switch (choice) {
+    case TENS_COLOR_ORANGE: return TENS_ORANGE;
+    case TENS_COLOR_BLUE: return TENS_BLUE;
+    default: return muted;  // gray -> muted for slot backgrounds
+  }
 }
 
 // Blit the slice of a baked spectral bitmap that lines up with `dst`.
@@ -81,36 +101,67 @@ static void fill_gradient_bar(GContext *ctx, GRect bar, int progress,
   }
 }
 
+// Paint a colored rectangle behind each hour-block covered by an active slot,
+// inflated by TENS_SLOT_BG_MARGIN on every side. Slots apply in order (1->4) so
+// a later slot's color wins for any hour they share. `slotted` records which
+// hours got a background, so empty marks there can use the page background.
+static void render_slot_backgrounds(GContext *ctx, const TensLayout *L,
+                                    const TensSettings *cfg, GColor muted,
+                                    bool is_weekend, bool slotted[24]) {
+  GColor hour_color[24];
+  for (int h = 0; h < 24; h++) slotted[h] = false;
+  for (int i = 0; i < TENS_NUM_SLOTS; i++) {
+    const TensSlot *s = &cfg->slots[i];
+    if (!tens_slot_visible(s->visibility, is_weekend)) continue;
+    GColor c = slot_bg_color(cfg, s->color, muted);
+    for (int h = s->start; h != s->end; h = (h + 1) % 24) {  // [start, end), wraps
+      hour_color[h] = c;
+      slotted[h] = true;
+    }
+  }
+  int m = TENS_SLOT_BG_MARGIN;
+  for (int h = 0; h < 24; h++) {
+    if (!slotted[h]) continue;
+    GRect b = tens_hour_block(L, h);
+    graphics_context_set_fill_color(ctx, hour_color[h]);
+    graphics_fill_rect(
+        ctx, GRect(b.origin.x - m, b.origin.y - m, b.size.w + 2 * m, b.size.h + 2 * m),
+        0, GCornerNone);
+  }
+}
+
 static void render_grid(GContext *ctx, const TensLayout *L,
                         const TensDerived *d, const TensSettings *cfg,
-                        GColor ink, GColor muted, GBitmap *grad) {
+                        GColor ink, GColor muted, GColor bg, GBitmap *grad,
+                        const bool slotted[24]) {
   GRect grid = tens_day_rect(L);
   for (int i = 0; i < 144; i++) {
     GRect cell = tens_ten_minute_cell(L, i);
+    // Empty marks on a slot background use the page background so they read as
+    // blank against the slot color; elsewhere they use muted.
+    GColor empty = slotted[i / 6] ? bg : muted;
     if (i < d->ten_minute_index) {
       draw_ink_rect(ctx, cell, grid, grad, ink);
     } else if (i == d->ten_minute_index) {
-      // Current box: muted missing part, then the completed-minute lines.
-      draw_missing(ctx, cell, cfg->grid_missing_fill, muted);
-      // Minute lines fill along the cell's long axis (same as the boxes).
+      // Current box: missing part (outline/fill), then the completed-minute lines.
+      draw_missing(ctx, cell, cfg->box_missing_fill, empty);
+      // Minute lines fill along the cell's long axis from the near edge.
       int count = d->minute_of_box;
       GRect fill;
       if (L->cell_x == 3) {
         int cols = clampi(count, 0, cell.size.w);
-        int x = cfg->fill_invert ? (rect_right(cell) - cols) : cell.origin.x;
-        fill = GRect(x, cell.origin.y, cols, cell.size.h);
+        fill = GRect(cell.origin.x, cell.origin.y, cols, cell.size.h);
       } else {
         int rows = clampi(count, 0, cell.size.h);
-        int y = cfg->fill_invert ? (rect_bottom(cell) - rows) : cell.origin.y;
-        fill = GRect(cell.origin.x, y, cell.size.w, rows);
+        fill = GRect(cell.origin.x, cell.origin.y, cell.size.w, rows);
       }
       draw_ink_rect(ctx, fill, grid, grad, ink);
     } else {
-      // Future box: a centered 4x4 muted dot placeholder.
+      // Future box: a centered 4x4 dot placeholder.
       int d4 = 4;
       int ox = cell.origin.x + (cell.size.w - d4) / 2;
       int oy = cell.origin.y + (cell.size.h - d4) / 2;
-      graphics_context_set_fill_color(ctx, muted);
+      graphics_context_set_fill_color(ctx, empty);
       graphics_fill_rect(ctx, GRect(ox, oy, d4, d4), 0, GCornerNone);
     }
   }
@@ -147,37 +198,46 @@ void tens_render(GContext *ctx, GRect bounds, const struct tm *now,
         cfg->layout_4x6 ? RESOURCE_ID_SPECTRAL_4X6 : RESOURCE_ID_SPECTRAL_6X4);
   }
 
-  render_grid(ctx, &L, &d, cfg, ink, muted, grad);
+  // Slot backgrounds first, so the grid (and its empty marks) paint over them.
+  bool is_weekend = (now->tm_wday == 0 || now->tm_wday == 6);  // Sun=0, Sat=6
+  bool slotted[24];
+  render_slot_backgrounds(ctx, &L, cfg, muted, is_weekend, slotted);
+
+  render_grid(ctx, &L, &d, cfg, ink, muted, bg, grad, slotted);
 
   // Three bars in two fixed slots: the top row split into left | right, plus
   // the long bottom bar. The chosen set only decides which metric (and its
-  // progress) lands in each slot; the *coloring* is purely positional and the
-  // same in both sets:
+  // progress) lands in each slot; the *coloring* is purely positional:
   //   - bottom full-width bar  -> mirrors the grid: spectral gradient in
   //                               rainbow mode, else ink.
-  //   - the two top bars       -> contrasty gray in rainbow mode, else the two
-  //                               accent colors (left=accent1, right=accent2).
-  int top_left_frac, top_right_frac, bottom_frac;
-  if (cfg->bar_set == TENS_BARS_WEEK_MONTH_YEAR) {
-    top_left_frac = d.frac_week;
-    top_right_frac = d.frac_month;
-    bottom_frac = d.frac_year;
-  } else {
-    top_left_frac = d.frac_month;
-    top_right_frac = d.frac_year;
-    bottom_frac = d.frac_life;
+  //   - the two top bars       -> contrasty gray in rainbow mode, else color1
+  //                               (left) and color2 (right).
+  int left_frac, right_frac, long_frac;
+  switch (cfg->bar_set) {
+    case TENS_BARS_WEEK_MONTH_YEAR:
+      left_frac = d.frac_week; right_frac = d.frac_month; long_frac = d.frac_year;
+      break;
+    case TENS_BARS_SLOT1_WEEK_MONTH:
+      left_frac = d.frac_slot1; right_frac = d.frac_week; long_frac = d.frac_month;
+      break;
+    case TENS_BARS_SLOT1_SLOT2_WEEK:
+      left_frac = d.frac_slot1; right_frac = d.frac_slot2; long_frac = d.frac_week;
+      break;
+    default:  // TENS_BARS_MONTH_YEAR_LIFE
+      left_frac = d.frac_month; right_frac = d.frac_year; long_frac = d.frac_life;
+      break;
   }
-  GColor top_left_color = cfg->rainbow ? gray : TENS_ACCENT1;
-  GColor top_right_color = cfg->rainbow ? gray : TENS_ACCENT2;
-  fill_solid_bar(ctx, tens_month_bar(&L), top_left_frac, top_left_color,
+  GColor left_color = cfg->rainbow ? gray : accent_color(cfg->color1, gray);
+  GColor right_color = cfg->rainbow ? gray : accent_color(cfg->color2, gray);
+  fill_solid_bar(ctx, tens_month_bar(&L), left_frac, left_color,
                  cfg->bars_missing_fill, muted);
-  fill_solid_bar(ctx, tens_year_bar(&L), top_right_frac, top_right_color,
+  fill_solid_bar(ctx, tens_year_bar(&L), right_frac, right_color,
                  cfg->bars_missing_fill, muted);
   if (grad) {
-    fill_gradient_bar(ctx, tens_life_bar(&L), bottom_frac, grad,
+    fill_gradient_bar(ctx, tens_life_bar(&L), long_frac, grad,
                       cfg->bars_missing_fill, muted);
   } else {
-    fill_solid_bar(ctx, tens_life_bar(&L), bottom_frac, ink,
+    fill_solid_bar(ctx, tens_life_bar(&L), long_frac, ink,
                    cfg->bars_missing_fill, muted);
   }
 

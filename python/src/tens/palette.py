@@ -1,7 +1,7 @@
 """Semantic palette and Pebble-compatible color mapping.
 
 Scene operations reference *semantic* palette entries (e.g. ``"ink"``,
-``"accent"``) rather than arbitrary RGB. That keeps scenes easy to diff and
+``"orange"``) rather than arbitrary RGB. That keeps scenes easy to diff and
 lets the C exporter emit the matching ``GColor`` constants.
 
 Pebble Time 2 renders 64 colors (2 bits per channel). Each ``PaletteColor``
@@ -58,12 +58,11 @@ def _pc(normal: str, gcolor: str, screen: str | None = None) -> PaletteColor:
 
 
 class Palette:
-    """Named collection of semantic colors."""
+    """Collection of semantic colors."""
 
-    def __init__(self, name: str, colors: dict[str, PaletteColor]) -> None:
+    def __init__(self, colors: dict[str, PaletteColor]) -> None:
         if "background" not in colors:
             raise ValueError("palette must define a 'background' color")
-        self.name = name
         self._colors = dict(colors)
 
     def __contains__(self, key: str) -> bool:
@@ -93,18 +92,11 @@ _BLACK = _pc("#000000", "GColorBlack", "#000000")
 _WHITE = _pc("#ffffff", "GColorWhite", "#ffffff")
 _DARK_GRAY = _pc("#555555", "GColorDarkGray", "#555555")
 _LIGHT_GRAY = _pc("#aaaaaa", "GColorLightGray", "#aaaaaa")
-# Two accent colors, each with light / medium / dark shades (planned accent
-# system). _ACC1 / _ACC2 are the medium shades, used by the two top bars; the
-# _LIGHT / _DARK shades are reserved for upcoming minor details (light shade in
-# light mode, dark shade in dark mode).
-# TODO(accent): _LIGHT / _DARK hex (and their GColor names) are placeholders
-# equal to the medium shade — replace with the real values when provided.
-_ACC1 = _pc("#FF5500", "GColorOrange", "#E66E6B")
-_ACC1_LIGHT = _pc("#FFAA55", "GColorRajah", "#F1AD93")
-_ACC1_DARK = _pc("#AA5500", "GColorWindsorTan", "#9D5B4D")
-_ACC2 = _pc("#0055FF", "GColorBlueMoon", "#007DCE")
-_ACC2_LIGHT = _pc("#55AAFF", "GColorPictonBlue", "#69B5DD")
-_ACC2_DARK = _pc("#0000AA", "GColorDukeBlue", "#004387")
+# The two accent colors, one shade each. A bar or slot whose user-chosen
+# "color1"/"color2" is "orange"/"blue" draws in these; "gray" resolves to the
+# grays above instead ("gray" for bars, "muted" for slot backgrounds).
+_ORANGE = _pc("#FFAA55", "GColorRajah", "#F1AD93")
+_BLUE = _pc("#55AAFF", "GColorPictonBlue", "#69B5DD")
 
 
 # --- Gradients ---------------------------------------------------------------
@@ -138,30 +130,25 @@ def gradient_stops(name: str, screen: bool = False) -> list[tuple[int, int, int]
     return [hex_rgb(p[1] if screen else p[0]) for p in pairs]
 
 
-def resolve(name: str = "default", dark_mode: bool = False) -> Palette:
+def resolve(dark_mode: bool = False) -> Palette:
     """Build the palette for the chosen background.
 
     dark_mode=False -> white background, black ink (boxes).
     dark_mode=True  -> black background, white ink.
 
-    "muted" is one contrasty gray used for placeholders, unfilled tracks /
-    outlines, and the two top bars in rainbow mode: dark gray on a white
-    background, light gray on a black one (so it stays visible in both).
-    "accent1"/"accent2" (medium shade) are the non-rainbow top-bar colors.
+    "muted" is the soft gray for placeholders, unfilled tracks / outlines, and
+    gray slot backgrounds: light gray on a white background, dark gray on a
+    black one. "gray" is the contrasty gray (the inverse) used for gray bars and
+    the top bars in rainbow mode. "orange"/"blue" are the two single-shade
+    accents that bars and slots pick via the user's color1/color2.
     """
     return Palette(
-        name,
         {
             "background": _BLACK if dark_mode else _WHITE,
             "ink": _WHITE if dark_mode else _BLACK,
             "muted": _DARK_GRAY if dark_mode else _LIGHT_GRAY,
             "gray": _LIGHT_GRAY if dark_mode else _DARK_GRAY,
-            # Two accents. "accentN" is the medium shade (the two top bars).
-            # "accentN_muted" is the light shade on a white background and the
-            # dark shade on a black one (so it reads as muted in either mode).
-            "accent1": _ACC1,
-            "accent1_muted": _ACC1_DARK if dark_mode else _ACC1_LIGHT,
-            "accent2": _ACC2,
-            "accent2_muted": _ACC2_DARK if dark_mode else _ACC2_LIGHT,
+            "orange": _ORANGE,
+            "blue": _BLUE,
         },
     )

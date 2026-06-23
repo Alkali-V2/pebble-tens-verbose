@@ -62,9 +62,11 @@ def test_defaults_match_c_settings():
     assert (cfg.birth_year, cfg.birth_month, cfg.birth_day) == (1990, 4, 12)
     assert cfg.life_span_years == 80
     assert cfg.layout == "6x4" and cfg.hours_direction == "horizontal"
-    assert cfg.dark_mode is False and cfg.rainbow is False and cfg.fill_invert is False
-    assert cfg.bars_missing_style == "fill"     # C: bars_missing_fill = true
-    assert cfg.grid_missing_style == "outline"  # C: grid_missing_fill = false
+    assert cfg.dark_mode is False and cfg.rainbow is False
+    assert cfg.bars_missing_style == "fill"  # C: bars_missing_fill = true
+    assert cfg.box_missing_style == "fill"   # C: box_missing_fill = true
+    assert cfg.color1 == "orange" and cfg.color2 == "blue"
+    assert cfg.bars_identity == "month|year|life"  # C: TENS_BARS_MONTH_YEAR_LIFE
 
 
 def test_rainbow_masks_grid_with_spectral_gradient():

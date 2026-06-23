@@ -4,12 +4,14 @@
 #pragma once
 #include <pebble.h>
 
-// The two accent colors (medium shade), used by the two top bars in non-rainbow
-// mode. Positional: top-left is accent 1, top-right is accent 2, regardless of
-// which metric the bar shows. Mirrors _ACC1/_ACC2 in python/src/tens/palette.py.
-// (background/ink/muted grays are chosen from dark_mode directly in render.c.)
-#define TENS_ACCENT1 GColorFromRGB(0xFF, 0x55, 0x00)  // #FF5500
-#define TENS_ACCENT2 GColorFromRGB(0x00, 0x00, 0xFF)  // #0000FF
+// The two accent colors, one shade each. A bar or slot whose user-chosen
+// color1/color2 is "orange"/"blue" draws in these; "gray" resolves to a gray
+// instead (the contrasty "gray" for bars, the soft "muted" for slot
+// backgrounds) -- see resolve_*_color() in render.c. Mirrors _ORANGE/_BLUE in
+// python/src/tens/palette.py. (background/ink/muted grays are chosen from
+// dark_mode directly in render.c.)
+#define TENS_ORANGE GColorFromRGB(0xFF, 0xAA, 0x55)  // #FFAA55 (GColorRajah)
+#define TENS_BLUE   GColorFromRGB(0x55, 0xAA, 0xFF)  // #55AAFF (GColorPictonBlue)
 
 // --- Spectral ramp (life bar + rainbow grid mask) ----------------------------
 #define TENS_SPECTRAL_STOPS 6

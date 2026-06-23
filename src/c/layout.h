@@ -9,6 +9,7 @@
 #define TENS_BOX 10        // edge of one ten-minute box, px
 #define TENS_CELL_GAP 3    // gap between boxes inside an hour-block
 #define TENS_BLOCK_GAP 8   // gap between hour-blocks
+#define TENS_SLOT_BG_MARGIN 4  // hour-slot background grows past its block by this
 
 typedef struct {
   int blocks_x, blocks_y;   // hour-blocks across / down

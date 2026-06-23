@@ -1,10 +1,11 @@
 #include "settings.h"
 #include <string.h>
 
-// Bumped to 2 when missing_fill split into bars_/grid_missing_fill: the struct
-// stays the same size, so the size guard alone can't tell old blobs apart —
-// the new key forces a clean default load after the update.
-#define SETTINGS_PERSIST_KEY 2
+// Bumped whenever the TensSettings layout changes so a stale persisted blob
+// (different size, or same size but different field meaning) is discarded in
+// favor of a clean default load. v3 added color1/color2 + the four hour-slots
+// and dropped fill_invert.
+#define SETTINGS_PERSIST_KEY 3
 
 static TensSettings s_settings;
 
@@ -14,15 +15,26 @@ static void set_defaults(void) {
       .dark_mode = false,
       .layout_4x6 = false,  // "6x4" = 6 columns x 4 rows
       .hours_horizontal = true,
-      .fill_invert = false,
-      .bars_missing_fill = true,   // bars: filled track by default
-      .grid_missing_fill = false,  // current block: outline by default
+      .bars_missing_fill = true,  // bars: filled track by default
+      .box_missing_fill = true,   // current block: filled by default
+      .color1 = TENS_COLOR_ORANGE,
+      .color2 = TENS_COLOR_BLUE,
       .bar_set = TENS_BARS_MONTH_YEAR_LIFE,
       .start_of_week = TENS_WEEK_MONDAY,
       .birth_year = 1990,
       .birth_month = 4,
       .birth_day = 12,
       .life_span_years = 80,
+      .slots = {
+          {.start = 9, .end = 17, .visibility = TENS_VIS_NEVER,
+           .color = TENS_SLOT_COLOR1},
+          {.start = 23, .end = 7, .visibility = TENS_VIS_NEVER,
+           .color = TENS_SLOT_COLOR2},
+          {.start = 0, .end = 0, .visibility = TENS_VIS_NEVER,
+           .color = TENS_SLOT_MUTED},
+          {.start = 0, .end = 0, .visibility = TENS_VIS_NEVER,
+           .color = TENS_SLOT_MUTED},
+      },
   };
 }
 
@@ -42,10 +54,19 @@ static void sanitize(void) {
   s_settings.birth_month = clampi(s_settings.birth_month, 1, 12);
   s_settings.birth_day = clampi(s_settings.birth_day, 1, 31);
   s_settings.life_span_years = clampi(s_settings.life_span_years, 1, 200);
+  s_settings.color1 = clampi(s_settings.color1, TENS_COLOR_ORANGE, TENS_COLOR_GRAY);
+  s_settings.color2 = clampi(s_settings.color2, TENS_COLOR_ORANGE, TENS_COLOR_GRAY);
   s_settings.bar_set = clampi(s_settings.bar_set, TENS_BARS_MONTH_YEAR_LIFE,
-                              TENS_BARS_WEEK_MONTH_YEAR);
+                              TENS_BARS_SLOT1_SLOT2_WEEK);
   s_settings.start_of_week = clampi(s_settings.start_of_week, TENS_WEEK_MONDAY,
                                     TENS_WEEK_SUNDAY);
+  for (int i = 0; i < TENS_NUM_SLOTS; i++) {
+    TensSlot *s = &s_settings.slots[i];
+    s->start = clampi(s->start, 0, 23);
+    s->end = clampi(s->end, 0, 23);
+    s->visibility = clampi(s->visibility, TENS_VIS_NEVER, TENS_VIS_ALWAYS);
+    s->color = clampi(s->color, TENS_SLOT_COLOR1, TENS_SLOT_MUTED);
+  }
 }
 
 void tens_settings_init(void) {
@@ -110,12 +131,12 @@ bool tens_settings_apply(DictionaryIterator *iter) {
       read_bool(iter, MESSAGE_KEY_LAYOUT_4X6, s_settings.layout_4x6);
   s_settings.hours_horizontal =
       read_bool(iter, MESSAGE_KEY_HOURS_HORIZONTAL, s_settings.hours_horizontal);
-  s_settings.fill_invert =
-      read_bool(iter, MESSAGE_KEY_FILL_INVERT, s_settings.fill_invert);
   s_settings.bars_missing_fill =
       read_bool(iter, MESSAGE_KEY_BARS_MISSING_STYLE, s_settings.bars_missing_fill);
-  s_settings.grid_missing_fill =
-      read_bool(iter, MESSAGE_KEY_GRID_MISSING_STYLE, s_settings.grid_missing_fill);
+  s_settings.box_missing_fill =
+      read_bool(iter, MESSAGE_KEY_BOX_MISSING_STYLE, s_settings.box_missing_fill);
+  s_settings.color1 = read_int(iter, MESSAGE_KEY_COLOR1, s_settings.color1);
+  s_settings.color2 = read_int(iter, MESSAGE_KEY_COLOR2, s_settings.color2);
   s_settings.bar_set = read_int(iter, MESSAGE_KEY_BAR_SET, s_settings.bar_set);
   s_settings.start_of_week =
       read_int(iter, MESSAGE_KEY_START_OF_WEEK, s_settings.start_of_week);
@@ -127,6 +148,25 @@ bool tens_settings_apply(DictionaryIterator *iter) {
       read_int(iter, MESSAGE_KEY_BIRTH_DAY, s_settings.birth_day);
   s_settings.life_span_years =
       read_int(iter, MESSAGE_KEY_LIFE_SPAN_YEARS, s_settings.life_span_years);
+
+  // Slots 1..4. Keys are flat (SLOT1_START, ...), so read each explicitly.
+  TensSlot *sl = s_settings.slots;
+  sl[0].start = read_int(iter, MESSAGE_KEY_SLOT1_START, sl[0].start);
+  sl[0].end = read_int(iter, MESSAGE_KEY_SLOT1_END, sl[0].end);
+  sl[0].visibility = read_int(iter, MESSAGE_KEY_SLOT1_VISIBILITY, sl[0].visibility);
+  sl[0].color = read_int(iter, MESSAGE_KEY_SLOT1_COLOR, sl[0].color);
+  sl[1].start = read_int(iter, MESSAGE_KEY_SLOT2_START, sl[1].start);
+  sl[1].end = read_int(iter, MESSAGE_KEY_SLOT2_END, sl[1].end);
+  sl[1].visibility = read_int(iter, MESSAGE_KEY_SLOT2_VISIBILITY, sl[1].visibility);
+  sl[1].color = read_int(iter, MESSAGE_KEY_SLOT2_COLOR, sl[1].color);
+  sl[2].start = read_int(iter, MESSAGE_KEY_SLOT3_START, sl[2].start);
+  sl[2].end = read_int(iter, MESSAGE_KEY_SLOT3_END, sl[2].end);
+  sl[2].visibility = read_int(iter, MESSAGE_KEY_SLOT3_VISIBILITY, sl[2].visibility);
+  sl[2].color = read_int(iter, MESSAGE_KEY_SLOT3_COLOR, sl[2].color);
+  sl[3].start = read_int(iter, MESSAGE_KEY_SLOT4_START, sl[3].start);
+  sl[3].end = read_int(iter, MESSAGE_KEY_SLOT4_END, sl[3].end);
+  sl[3].visibility = read_int(iter, MESSAGE_KEY_SLOT4_VISIBILITY, sl[3].visibility);
+  sl[3].color = read_int(iter, MESSAGE_KEY_SLOT4_COLOR, sl[3].color);
   sanitize();
 
   persist_write_data(SETTINGS_PERSIST_KEY, &s_settings, sizeof(s_settings));

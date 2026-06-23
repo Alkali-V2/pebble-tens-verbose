@@ -27,24 +27,35 @@ from tens.state import RuntimeState, SimulatorConfig, UserConfig  # noqa: E402
 _SAMPLE = _dt.datetime(2026, 8, 12, 15, 37)
 _BIRTH = dict(birth_year=1990, birth_month=4, birth_day=12)
 
-# name -> (extra UserConfig kwargs, screen_simulator_mode). Birth date is shared.
-SHOTS: dict[str, tuple[dict, bool]] = {
-    "light_mode": (dict(), False),
-    "dark_mode": (dict(dark_mode=True), False),
-    "rainbow": (dict(rainbow=True), False),
-    "rainbow_dark": (dict(rainbow=True, dark_mode=True), False),
+# name -> extra UserConfig kwargs. Birth date is shared. Screen-simulator mode
+# (the muted on-panel look) is a render option, applied to every shot via the
+# --screen-sim flag rather than baked per shot.
+SHOTS: dict[str, dict] = {
+    "s01_light_mode": dict(),
+    "s02_dark_mode": dict(dark_mode=True),
+    "s03_light_mode_slot_muted": dict(slot1_visibility="always", slot1_color="muted"),
+    "s04_light_mode_slots": dict(slot1_visibility="always", slot2_visibility="always"),
+    "s05_dark_mode_slots": dict(dark_mode=True, slot1_visibility="always", slot2_visibility="always"),
+    "s06_rainbow": dict(rainbow=True),
+    "s07_rainbow_dark": dict(rainbow=True, dark_mode=True),
+    "s08_rainbow_slots": dict(rainbow=True, slot1_visibility="always"),
+    "s09_rainbow_slots_dark": dict(rainbow=True, dark_mode=True, slot1_visibility="always"),
 }
 
 
-def render_all(out_dir: str | Path) -> list[Path]:
-    """Render every screenshot in ``SHOTS`` into ``out_dir`` (one PNG each)."""
+def render_all(out_dir: str | Path, screen: bool = False) -> list[Path]:
+    """Render every screenshot in ``SHOTS`` into ``out_dir`` (one PNG each).
+
+    ``screen`` turns on screen-simulator mode (colors as the emery panel
+    displays them) for the whole batch.
+    """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     rt = RuntimeState.from_datetime(_SAMPLE)
+    sim = SimulatorConfig(screen_simulator_mode=screen)
     written: list[Path] = []
-    for name, (kwargs, screen) in SHOTS.items():
+    for name, kwargs in SHOTS.items():
         cfg = UserConfig(**_BIRTH, **kwargs)
-        sim = SimulatorConfig(screen_simulator_mode=screen)
         scene = build_scene(rt, cfg, derive(rt, cfg))
         written.append(render_png(scene, out_dir / f"{name}.png", sim))
     return written
@@ -54,8 +65,12 @@ def main(argv: list[str] | None = None) -> int:
     default_out = Path(__file__).resolve().parents[2] / "img" / "screenshots"
     parser = argparse.ArgumentParser(description="Render Tens preview screenshots.")
     parser.add_argument("-o", "--out", default=str(default_out), help="output directory")
+    parser.add_argument(
+        "--screen-sim", action="store_true",
+        help="render colors as the emery panel displays them (screen simulator)",
+    )
     args = parser.parse_args(argv)
-    for path in render_all(args.out):
+    for path in render_all(args.out, screen=args.screen_sim):
         print(f"wrote {path}")
     return 0
 

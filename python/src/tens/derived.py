@@ -39,6 +39,8 @@ class DerivedState:
     fraction_of_month: float  # 0.0 .. 1.0
     fraction_of_year: float  # 0.0 .. 1.0
     fraction_of_life: float  # 0.0 .. 1.0 (clamped)
+    fraction_of_slot1: float  # 0.0 .. 1.0 (progress through hour-slot 1)
+    fraction_of_slot2: float  # 0.0 .. 1.0 (progress through hour-slot 2)
     ten_minute_index: int  # 0 .. 143  (which 10-minute box of the day)
     minute_of_box: int  # 0 .. 9  (minutes elapsed inside the current box)
     life_stage_fracs: tuple  # infancy, first/second adulthood, elder shares
@@ -82,6 +84,45 @@ def _absolute_days(year: int, month: int, day: int) -> int:
     return total + _day_of_year(year, month, day)
 
 
+def slot_visible(visibility: str, is_weekend: bool) -> bool:
+    """Whether a slot with this visibility is shown for the current day.
+
+    Shared by the slot-background rendering and the slot-progress bars, so a
+    bar assigned to a slot that is hidden today reads as empty (see ``derive``).
+    """
+    if visibility == "always":
+        return True
+    if visibility == "weekdays":
+        return not is_weekend
+    if visibility == "weekends":
+        return is_weekend
+    return False  # "never"
+
+
+def _slot_fraction(start: int, end: int, minutes_of_day: int) -> float:
+    """Progress through an hour-slot in [0, 1].
+
+    A slot runs from ``start`` o'clock (inclusive) to ``end`` o'clock; the bar
+    fills 0->1 across that window and otherwise sits empty or full:
+      - A within-day slot (start < end) resets at midnight: 0 before ``start``,
+        rising to 1 at ``end``, then full until midnight.
+      - A slot crossing midnight (start > end) resets at its own ``start``: 0 at
+        ``start``, rising to 1 at ``end`` (next day), then full until ``start``
+        comes round again.
+    ``start == end`` is an empty slot (always 0).
+    """
+    duration_h = (end - start) % 24
+    if duration_h == 0:
+        return 0.0
+    dur_min = duration_h * 60
+    start_min = start * 60
+    if start < end:  # within one day -> reset at midnight
+        return min(1.0, max(0.0, (minutes_of_day - start_min) / dur_min))
+    # crosses midnight -> reset at the slot's start
+    elapsed = (minutes_of_day - start_min) % (24 * 60)
+    return min(1.0, elapsed / dur_min)
+
+
 def derive(rt: RuntimeState, cfg: UserConfig) -> DerivedState:
     """Compute all derived values from raw runtime state + user config."""
     # Age in whole years (has the birthday occurred yet this year?).
@@ -118,6 +159,19 @@ def derive(rt: RuntimeState, cfg: UserConfig) -> DerivedState:
     life_days = max(1, cfg.life_span_years * 365)
     fraction_of_life = min(1.0, max(0.0, age_days / life_days))
 
+    # A slot-progress bar only fills on days the slot is actually shown; when
+    # the slot is hidden today (visibility "never", or "weekdays"/"weekends" on
+    # the off days) its bar stays empty.
+    is_weekend = rt.weekday >= 5  # weekday: 0=Mon .. 6=Sun
+    fraction_of_slot1 = (
+        _slot_fraction(cfg.slot1_start, cfg.slot1_end, minutes_of_day)
+        if slot_visible(cfg.slot1_visibility, is_weekend) else 0.0
+    )
+    fraction_of_slot2 = (
+        _slot_fraction(cfg.slot2_start, cfg.slot2_end, minutes_of_day)
+        if slot_visible(cfg.slot2_visibility, is_weekend) else 0.0
+    )
+
     ten_minute_index = minutes_of_day // 10
     minute_of_box = rt.minute % 10  # one pixel-row per minute inside the box
 
@@ -132,6 +186,8 @@ def derive(rt: RuntimeState, cfg: UserConfig) -> DerivedState:
         fraction_of_month=fraction_of_month,
         fraction_of_year=fraction_of_year,
         fraction_of_life=fraction_of_life,
+        fraction_of_slot1=fraction_of_slot1,
+        fraction_of_slot2=fraction_of_slot2,
         ten_minute_index=ten_minute_index,
         minute_of_box=minute_of_box,
         life_stage_fracs=life_stage_fracs,
