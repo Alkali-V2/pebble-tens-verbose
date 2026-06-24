@@ -147,7 +147,7 @@ module.exports = [
       {
         type: 'toggle',
         messageKey: 'BAR_NUMBERS',
-        label: 'Show day & month numbers (Day / Month / Life only)',
+        label: 'Show day and month numbers',
         defaultValue: true,
       },
       {
