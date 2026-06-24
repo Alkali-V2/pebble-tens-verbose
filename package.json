@@ -20,6 +20,8 @@
             "BARS_MISSING_STYLE",
             "BOX_MISSING_STYLE",
             "BAR_SET",
+            "BAR_NUMBERS",
+            "MINUTE_NUMBER",
             "START_OF_WEEK",
             "LAYOUT_4X6",
             "HOURS_HORIZONTAL",
