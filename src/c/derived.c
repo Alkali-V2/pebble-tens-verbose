@@ -70,6 +70,12 @@ void tens_derive(const struct tm *now, const TensSettings *cfg,
   out->ten_minute_index = minutes_of_day / 10;
   out->minute_of_box = now->tm_min % 10;
 
+  // Progress through the current day (resets at midnight). Caps at 999 at 23:59.
+  out->frac_day = minutes_of_day * 1000 / (24 * 60);
+  // Raw calendar values for the bar number overlays.
+  out->mday = day;
+  out->mon = month;
+
   // tm_wday is Sunday(0)..Saturday(6). Index the week from the configured start
   // day: Monday-start shifts so Monday is 0; Sunday-start uses tm_wday as-is.
   int wday = (cfg->start_of_week == TENS_WEEK_SUNDAY) ? now->tm_wday
