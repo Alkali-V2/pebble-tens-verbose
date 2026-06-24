@@ -99,6 +99,12 @@ module.exports = [
         label: 'Current 10-min block: fill missing part (vs outline)',
         defaultValue: true,
       },
+      {
+        type: 'toggle',
+        messageKey: 'MINUTE_NUMBER',
+        label: 'Show minute number (0-9) in current 10-min block',
+        defaultValue: true,
+      },
     ],
   },
   {
@@ -129,13 +135,20 @@ module.exports = [
         type: 'select',
         messageKey: 'BAR_SET',
         label: 'Bars show',
-        defaultValue: 0,
+        defaultValue: 4,
         options: [
           { label: 'Month / Year / Life', value: 0 },
           { label: 'Week / Month / Year', value: 1 },
           { label: 'Slot 1 / Week / Month', value: 2 },
           { label: 'Slot 1 / Slot 2 / Week', value: 3 },
+          { label: 'Day / Month / Life', value: 4 },
         ],
+      },
+      {
+        type: 'toggle',
+        messageKey: 'BAR_NUMBERS',
+        label: 'Show day & month numbers (Day / Month / Life only)',
+        defaultValue: true,
       },
       {
         type: 'select',
