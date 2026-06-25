@@ -10,6 +10,7 @@ enum {
   TENS_BARS_WEEK_MONTH_YEAR = 1,  // week  | month | year
   TENS_BARS_SLOT1_WEEK_MONTH = 2, // slot1 | week  | month
   TENS_BARS_SLOT1_SLOT2_WEEK = 3, // slot1 | slot2 | week
+  TENS_BARS_DAY_MONTH_LIFE = 4,   // day   | month | life  (supports number overlays)
 };
 
 // Day the week bar starts on (mirrors UserConfig.start_of_the_week).
@@ -61,6 +62,8 @@ typedef struct {
                           //   false=outline, true=muted fill
   bool box_missing_fill; // current 10-min block's missing part:
                           //   false=outline, true=muted fill
+  bool bar_numbers;      // day/month numbers in the Day/Month/Life bars
+  bool minute_number;    // minute-of-block digit in the current 10-min box
   int color1;            // TENS_COLOR_* : left top bar + slots set to color1
   int color2;            // TENS_COLOR_* : right top bar + slots set to color2
   int bar_set;           // TENS_BARS_* : which trio the three bars show

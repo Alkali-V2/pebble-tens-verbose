@@ -17,13 +17,16 @@ typedef struct {
   int block_w, block_h;
   int grid_w, grid_h;
   int ox, oy;               // grid origin (centered)
+  int top_bar_h;            // height of the top (day|month) bar; tall when numbered
   bool hours_horizontal;    // hour-block order: row-major vs column-major
 } TensLayout;
 
 // layout_4x6=true  -> "4x6": 4 cols x 6 rows, cells 3x2, horizontal half-hours.
 // layout_4x6=false -> "6x4": 6 cols x 4 rows, cells 2x3, vertical half-hours.
 // hours_horizontal sets the order hour-blocks populate the grid.
-void tens_layout_init(TensLayout *layout, bool layout_4x6, bool hours_horizontal);
+// tall_top_bar grows the top bar to fit the 14px day/month numbers.
+void tens_layout_init(TensLayout *layout, bool layout_4x6, bool hours_horizontal,
+                      bool tall_top_bar);
 
 GRect tens_day_rect(const TensLayout *layout);
 GRect tens_hour_block(const TensLayout *layout, int hour);

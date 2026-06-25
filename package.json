@@ -1,5 +1,5 @@
 {
-    "author": "andreavolpato",
+    "author": ["andreavolpato","Alkali-V2"],
     "dependencies": {
         "pebble-clay": "^1.0.4"
     },
@@ -7,12 +7,12 @@
         "pebble-app",
         "watchface"
     ],
-    "name": "tens",
+    "name": "tens after",
     "pebble": {
         "capabilities": [
             "configurable"
         ],
-        "displayName": "tens",
+        "displayName": "tens after",
         "enableMultiJS": true,
         "messageKeys": [
             "RAINBOW",
@@ -20,6 +20,8 @@
             "BARS_MISSING_STYLE",
             "BOX_MISSING_STYLE",
             "BAR_SET",
+            "BAR_NUMBERS",
+            "MINUTE_NUMBER",
             "START_OF_WEEK",
             "LAYOUT_4X6",
             "HOURS_HORIZONTAL",
@@ -67,7 +69,7 @@
         "targetPlatforms": [
             "emery"
         ],
-        "uuid": "0f61229e-ee11-4e93-bc6c-eedaa39c93fb",
+        "uuid": "a7c3d1f8-4b92-4e6a-b8d5-3f1e7a2c9d04",
         "watchapp": {
             "watchface": true
         }

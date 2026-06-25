@@ -4,8 +4,9 @@
 // Bumped whenever the TensSettings layout changes so a stale persisted blob
 // (different size, or same size but different field meaning) is discarded in
 // favor of a clean default load. v3 added color1/color2 + the four hour-slots
-// and dropped fill_invert.
-#define SETTINGS_PERSIST_KEY 3
+// and dropped fill_invert. v4 added bar_numbers + minute_number and the
+// Day/Month/Life bar set.
+#define SETTINGS_PERSIST_KEY 4
 
 static TensSettings s_settings;
 
@@ -17,9 +18,11 @@ static void set_defaults(void) {
       .hours_horizontal = true,
       .bars_missing_fill = true,  // bars: filled track by default
       .box_missing_fill = true,   // current block: filled by default
+      .bar_numbers = true,        // show day/month numbers in the Day/Month/Life bars
+      .minute_number = true,      // show the minute digit in the current block
       .color1 = TENS_COLOR_ORANGE,
       .color2 = TENS_COLOR_BLUE,
-      .bar_set = TENS_BARS_MONTH_YEAR_LIFE,
+      .bar_set = TENS_BARS_DAY_MONTH_LIFE,
       .start_of_week = TENS_WEEK_MONDAY,
       .birth_year = 1990,
       .birth_month = 4,
@@ -57,7 +60,7 @@ static void sanitize(void) {
   s_settings.color1 = clampi(s_settings.color1, TENS_COLOR_ORANGE, TENS_COLOR_GRAY);
   s_settings.color2 = clampi(s_settings.color2, TENS_COLOR_ORANGE, TENS_COLOR_GRAY);
   s_settings.bar_set = clampi(s_settings.bar_set, TENS_BARS_MONTH_YEAR_LIFE,
-                              TENS_BARS_SLOT1_SLOT2_WEEK);
+                              TENS_BARS_DAY_MONTH_LIFE);
   s_settings.start_of_week = clampi(s_settings.start_of_week, TENS_WEEK_MONDAY,
                                     TENS_WEEK_SUNDAY);
   for (int i = 0; i < TENS_NUM_SLOTS; i++) {
@@ -135,6 +138,10 @@ bool tens_settings_apply(DictionaryIterator *iter) {
       read_bool(iter, MESSAGE_KEY_BARS_MISSING_STYLE, s_settings.bars_missing_fill);
   s_settings.box_missing_fill =
       read_bool(iter, MESSAGE_KEY_BOX_MISSING_STYLE, s_settings.box_missing_fill);
+  s_settings.bar_numbers =
+      read_bool(iter, MESSAGE_KEY_BAR_NUMBERS, s_settings.bar_numbers);
+  s_settings.minute_number =
+      read_bool(iter, MESSAGE_KEY_MINUTE_NUMBER, s_settings.minute_number);
   s_settings.color1 = read_int(iter, MESSAGE_KEY_COLOR1, s_settings.color1);
   s_settings.color2 = read_int(iter, MESSAGE_KEY_COLOR2, s_settings.color2);
   s_settings.bar_set = read_int(iter, MESSAGE_KEY_BAR_SET, s_settings.bar_set);
