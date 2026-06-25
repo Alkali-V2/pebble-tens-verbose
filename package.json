@@ -1,5 +1,5 @@
 {
-    "author": "Alkali-V2",
+    "authors": ["andreavolpato","Alkali-V2"],
     "dependencies": {
         "pebble-clay": "^1.0.4"
     },
@@ -7,7 +7,7 @@
         "pebble-app",
         "watchface"
     ],
-    "name": "Tens After",
+    "name": "tens after",
     "pebble": {
         "capabilities": [
             "configurable"
