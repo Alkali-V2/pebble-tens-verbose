@@ -1,5 +1,5 @@
 {
-    "author": "Alkali-V2",
+    "author": ["andreavolpato","Alkali-V2"],
     "dependencies": {
         "pebble-clay": "^1.0.4"
     },
