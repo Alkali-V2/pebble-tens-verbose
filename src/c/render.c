@@ -268,9 +268,9 @@ void tens_render(GContext *ctx, GRect bounds, const struct tm *now,
   TensDerived d;
   tens_derive(now, cfg, &d);
 
-  // The day/month numbers (and the taller top bar that holds them) apply only
-  // to the Day/Month/Life set with the toggle on.
-  bool bar_numbers = (cfg->bar_set == TENS_BARS_DAY_MONTH_LIFE) && cfg->bar_numbers;
+  // Every selectable bar set carries day/month-style numbers, so the taller
+  // numbered top bar follows the toggle alone.
+  bool bar_numbers = cfg->bar_numbers;
 
   TensLayout L;
   tens_layout_init(&L, cfg->layout_4x6, cfg->hours_horizontal, bar_numbers);
@@ -305,21 +305,17 @@ void tens_render(GContext *ctx, GRect bounds, const struct tm *now,
   switch (cfg->bar_set) {
     case TENS_BARS_WEEK_MONTH_YEAR:
       left_frac = d.frac_week; right_frac = d.frac_month; long_frac = d.frac_year;
-      break;
-    case TENS_BARS_SLOT1_WEEK_MONTH:
-      left_frac = d.frac_slot1; right_frac = d.frac_week; long_frac = d.frac_month;
-      break;
-    case TENS_BARS_SLOT1_SLOT2_WEEK:
-      left_frac = d.frac_slot1; right_frac = d.frac_slot2; long_frac = d.frac_week;
+      if (bar_numbers) { left_num = d.week_of_year; right_num = d.mon; }
       break;
     case TENS_BARS_DAY_MONTH_LIFE:
       // Left (orange) = progress through the day; right (blue) = through the
-      // month. Numbers (day-of-month, month) only when the toggle is on.
+      // month. Numbers: day-of-month, month.
       left_frac = d.frac_day; right_frac = d.frac_month; long_frac = d.frac_life;
       if (bar_numbers) { left_num = d.mday; right_num = d.mon; }
       break;
-    default:  // TENS_BARS_MONTH_YEAR_LIFE
+    default:  // TENS_BARS_MONTH_YEAR_LIFE (also the fallback for retired sets)
       left_frac = d.frac_month; right_frac = d.frac_year; long_frac = d.frac_life;
+      if (bar_numbers) { left_num = d.mon; right_num = d.yday; }
       break;
   }
   GColor left_color = cfg->rainbow ? gray : accent_color(cfg->color1, gray);
