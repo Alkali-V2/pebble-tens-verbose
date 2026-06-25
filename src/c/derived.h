@@ -13,6 +13,8 @@ typedef struct {
   int frac_month;        // permille through the month
   int mday;              // calendar day of month (1..31), for bar overlays
   int mon;               // month number (1..12), for bar overlays
+  int yday;              // day of year (1..366), for the year-bar overlay
+  int week_of_year;      // week of year (1..53), for the week-bar overlay
   int frac_year;         // permille through the year (Jan 1 -> Dec 31)
   int frac_life;         // permille through the configured lifespan (clamped)
   int frac_slot1;        // permille through hour-slot 1 (0 when hidden today)
