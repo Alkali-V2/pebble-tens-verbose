@@ -83,6 +83,16 @@ void tens_derive(const struct tm *now, const TensSettings *cfg,
   // Include the time of day so the week bar advances continuously, not in
   // whole-day steps (matches derived.fraction_of_week).
   out->frac_week = (wday * 24 * 60 + minutes_of_day) * 1000 / (7 * 24 * 60);
+
+  // Day of year (1..366) and week of year (1..53). The week number uses the
+  // same start-of-week convention as frac_week: week 1 is the (possibly partial)
+  // week containing Jan 1, incrementing on each start-of-week day. wday_jan1 is
+  // Jan 1's position within the week, derived from today's wday and day-of-year.
+  out->yday = day_of_year(year, month, day);
+  int yday0 = out->yday - 1;  // 0-based
+  int wday_jan1 = ((wday - yday0) % 7 + 7) % 7;
+  int week = (yday0 + wday_jan1) / 7 + 1;
+  out->week_of_year = week > 53 ? 53 : week;  // clamp the rare 54th partial week
   out->frac_month = (day - 1) * 1000 / days_in_month(year, month);
   out->frac_year = (day_of_year(year, month, day) - 1) * 1000 / days_in_year(year);
 
