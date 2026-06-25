@@ -1,5 +1,5 @@
 {
-    "author": "andreavolpato",
+    "author": "Alkali-V2",
     "dependencies": {
         "pebble-clay": "^1.0.4"
     },
@@ -7,12 +7,12 @@
         "pebble-app",
         "watchface"
     ],
-    "name": "tens",
+    "name": "Tens After",
     "pebble": {
         "capabilities": [
             "configurable"
         ],
-        "displayName": "tens",
+        "displayName": "tens after",
         "enableMultiJS": true,
         "messageKeys": [
             "RAINBOW",
